@@ -1,5 +1,4 @@
 import random
-
 # P[state][action] = ...
 P = {
     # State:
@@ -67,19 +66,6 @@ class HallwayEnv:
         done = self.is_terminal(self.state)
         return self.state, r, done
 
-def random_policy():
-    random_num = random.randint(1, 2)
-    if random_num == 1:
-        return "LEFT"
-    elif random_num == 2:
-        return "RIGHT"
-
-h_env = HallwayEnv()
-
-state = h_env.reset()
-
-    
-policy = random_policy()
 # Run episodes and track return 
 def run_episode(env, policy, max_steps=100):
     # Reset the environment
@@ -103,7 +89,7 @@ def evaluate_policy(env, policy, n_episodes=1000):
     ## Loop through for requested number of episodes
     all_reward = 0
     for i in range(n_episodes):
-        trajectory, reward, step_count = run_episode(env, policy(state))
+        trajectory, reward, step_count = run_episode(env, policy)
         all_reward += reward
     return all_reward / n_episodes
 
@@ -163,7 +149,45 @@ def policy_improvement(env, V):
         new_policy[s] = best_action
     return new_policy
 
-v = iterative_policy_evaluation(h_env, all_left)
-optimal_policy = policy_improvement(h_env, v)
+# Helper function to convert a policy to a table
+def policy_from_table(policy_table):
+    def policy(state):
+        return policy_table[state]
+    return policy
 
-print(optimal_policy)
+def policy_iteration(env, initial_policy_table):
+    # should take the initial policy and iteratively improve it to the optimal policy
+    current_policy_table = initial_policy_table.copy()
+    while True:
+        # Turn table into callable policy
+        policy = policy_from_table(current_policy_table)
+
+        # Evaluate current policy
+        V = iterative_policy_evaluation(env, policy)
+
+        # Improve the current policy
+        new_policy_table = policy_improvement(env, V)
+        
+        # Break if the policies didn't change 
+        if current_policy_table == new_policy_table:
+            break
+        current_policy_table = new_policy_table
+    return current_policy_table, V # return the improved policy
+    
+# Can it change the worst policy into the best? 
+initial_policy_table = {
+    1: "LEFT",
+    2: "LEFT",
+    3: "LEFT",
+    4: "LEFT",
+    5: "LEFT",
+}
+h_env = HallwayEnv()
+
+state = h_env.reset()
+
+new_policy, V = policy_iteration(h_env, initial_policy_table)
+print(f"Optimal policy: {new_policy}")  # Yes!
+# Note: here there is only one optimal policy, 
+#in other environments there can be more
+print(f"Optimal v-function {V}") # There is always only one optimal value-function
