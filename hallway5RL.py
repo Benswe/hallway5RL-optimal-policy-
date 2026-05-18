@@ -1,8 +1,5 @@
 import random
-# Assign states
-states = [0, 1, 2, 3, 4, 5, 6]
-# Assign actions
-actions = ["LEFT", "RIGHT"]
+
 # P[state][action] = ...
 P = {
     # State:
@@ -27,19 +24,13 @@ P = {
         "LEFT": [(0.8, 4), (0.2, 6)],
         "RIGHT": [(0.2, 4), (0.8, 6)]
     }
-
 }
-# Terminal States
-terminal_states = [0, 6]
-# Discount factor
-gamma = 0.85
-
 # We need to be able to keep track of the agents current position
 class HallwayEnv:
     # Create initializer
     def __init__(self, initial_state=3, gamma=0.85):
         self.states = [0, 1, 2, 3, 4, 5, 6]
-        self.actions = actions
+        self.actions = ["LEFT", "RIGHT"]
         self.P = P
         self.terminal_states = [0, 6]
         self.gamma = gamma # Discount factor
@@ -101,7 +92,7 @@ def run_episode(env, policy, max_steps=100):
         action = policy(state)
         next_state, r, done = env.step(action)
         trajectory.append((state, action, next_state, r))
-        total_reward += r * (gamma ** step_count)
+        total_reward += r * (env.gamma ** step_count)
         step_count += 1
         state = next_state
     return trajectory, total_reward, step_count
@@ -143,13 +134,36 @@ def iterative_policy_evaluation(env, policy, theta=1e-6):
         prev_V = V.copy()
     return V  
 
-v = iterative_policy_evaluation(h_env, all_left)
-print(v)
 
-def improve_policy(env, V):
+def policy_improvement(env, V):
     # Should use the value function to create a better policy
     # Greedily choose the action with the higher Q value using V
-    prev_Q = {s: 0 for s in env.states}
-    print(prev_Q)
+    Q = {s: {} for s in env.states}
+    new_policy = {}
+    for s in env.states:
+        if env.is_terminal(s):
+            continue
+            # loop through each action, find which action has higher value
+        best_action = None
+        best_value = float("-inf") # extremely small number
+        for a in env.actions:
+            # we need the probability of a given action
+            Q_value = 0
+            transitions = env.P[s][a] 
+            for probability, next_state in transitions:
+                r = env.reward(next_state)
+                done = env.is_terminal(next_state)
+                # update for all possible transitions from the action
+                Q_value += probability * (r + env.gamma * V[next_state] * (not done))
+            Q[s][a] = Q_value
+            # compare to see if update is necessary
+            if Q_value > best_value:
+                best_value = Q_value
+                best_action = a
+        new_policy[s] = best_action
+    return new_policy
 
-improve_policy(h_env, v)
+v = iterative_policy_evaluation(h_env, all_left)
+optimal_policy = policy_improvement(h_env, v)
+
+print(optimal_policy)
