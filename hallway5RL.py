@@ -98,11 +98,12 @@ def run_episode(env, policy, max_steps=100):
     trajectory = []
     total_reward = 0
     while (not done) and step_count < max_steps:
-        action = policy
+        action = policy(state)
         next_state, r, done = env.step(action)
         trajectory.append((state, action, next_state, r))
         total_reward += r * (gamma ** step_count)
         step_count += 1
+        state = next_state
     return trajectory, total_reward, step_count
 
 # We now will right an evaluate policy function to compare policies
@@ -111,7 +112,7 @@ def evaluate_policy(env, policy, n_episodes=1000):
     ## Loop through for requested number of episodes
     all_reward = 0
     for i in range(n_episodes):
-        trajectory, reward, step_count = run_episode(env, policy)
+        trajectory, reward, step_count = run_episode(env, policy(state))
         all_reward += reward
     return all_reward / n_episodes
 
