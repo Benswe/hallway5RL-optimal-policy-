@@ -58,7 +58,7 @@ class HallwayEnv:
             return 0
     def is_terminal(self, state):
         return state in self.terminal_states
-    def step(self, action): # Return the current state, reward, if_done
+    def step(self, action): # Return the next state, reward, if_done
         if self.is_terminal(self.state):
             return self.state, 0, True
 
@@ -76,21 +76,76 @@ class HallwayEnv:
         done = self.is_terminal(self.state)
         return self.state, r, done
 
-env = HallwayEnv()
+def random_policy():
+    random_num = random.randint(1, 2)
+    if random_num == 1:
+        return "LEFT"
+    elif random_num == 2:
+        return "RIGHT"
 
-state = env.reset()
-done = False
+h_env = HallwayEnv()
 
-# All right policy
-def all_left():
+state = h_env.reset()
+
+    
+policy = random_policy()
+# Run episodes and track return 
+def run_episode(env, policy, max_steps=100):
+    # Reset the environment
+    state = env.reset()
+    done = False
+    step_count = 0
+    trajectory = []
+    total_reward = 0
+    while (not done) and step_count < max_steps:
+        action = policy
+        next_state, r, done = env.step(action)
+        trajectory.append((state, action, next_state, r))
+        total_reward += r * (gamma ** step_count)
+        step_count += 1
+    return trajectory, total_reward, step_count
+
+# We now will right an evaluate policy function to compare policies
+# This doesn't use bellman equations yet, just average returns
+def evaluate_policy(env, policy, n_episodes=1000):
+    ## Loop through for requested number of episodes
+    all_reward = 0
+    for i in range(n_episodes):
+        trajectory, reward, step_count = run_episode(env, policy)
+        all_reward += reward
+    return all_reward / n_episodes
+
+
+def all_left(state):
     return "LEFT"
 
-while not done:
-    action = all_left()
-    next_state, reward, done = env.step(action)
+# Let's create an iterative policy evaluation
+def iterative_policy_evaluation(env, policy, theta=1e-6):
+    prev_V= {s: 0.0 for s in env.states}
 
-    print(state, action, next_state, reward, done)
+    while True:
+        V = {s: 0.0 for s in env.states}
+        # make sure state is not terminal
+        # loop through every state, 
+        for s in env.states:
+            if env.is_terminal(s):
+                continue
+            # gets us the next state and probability of that next state
+            # given the current state a policy
+            for probability, next_state in env.P[s][policy(s)]:
+                r = env.reward(next_state)
+                done = env.is_terminal(next_state)
+                V[s] += probability * (r + env.gamma * prev_V[next_state] * (not done))
+        delta = max([abs(V[s] - prev_V[s]) for s in env.states])
+        if delta < theta:
+            break 
+        prev_V = V.copy()
+    return V  
 
-    state = next_state
 
 
+def all_right(state):
+    return "RIGHT"
+
+V = iterative_policy_evaluation(h_env, all_left)
+print(V)
