@@ -106,7 +106,7 @@ def run_episode(env, policy, max_steps=100):
         state = next_state
     return trajectory, total_reward, step_count
 
-# We now will right an evaluate policy function to compare policies
+# We now will write an evaluate policy function to compare policies
 # This doesn't use bellman equations yet, just average returns
 def evaluate_policy(env, policy, n_episodes=1000):
     ## Loop through for requested number of episodes
@@ -143,10 +143,13 @@ def iterative_policy_evaluation(env, policy, theta=1e-6):
         prev_V = V.copy()
     return V  
 
+v = iterative_policy_evaluation(h_env, all_left)
+print(v)
 
+def improve_policy(env, V):
+    # Should use the value function to create a better policy
+    # Greedily choose the action with the higher Q value using V
+    prev_Q = {s: 0 for s in env.states}
+    print(prev_Q)
 
-def all_right(state):
-    return "RIGHT"
-
-V = iterative_policy_evaluation(h_env, all_left)
-print(V)
+improve_policy(h_env, v)
